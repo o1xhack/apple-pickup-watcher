@@ -1,0 +1,41 @@
+name: macOS build and offline checks
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm install --frozen-lockfile
+      - run: cargo fmt --all --check
+      - run: pnpm exec tsc --noEmit && pnpm test
+      - run: cargo test --workspace --locked
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: pnpm tauri build --bundles app --ci
+        env:
+          APW_REQUIRE_EMBEDDED_ASSETS: '1'
+      - run: sh scripts/package-macos.sh target/release/bundle/macos/库存抢东西.app release-output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Inventory-Rush-macOS
+          path: |
+            release-output/*.zip
+            release-output/SHA256SUMS
