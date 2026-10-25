@@ -32,10 +32,10 @@ jobs:
       - run: pnpm tauri build --bundles app --ci
         env:
           APW_REQUIRE_EMBEDDED_ASSETS: '1'
-      - run: sh scripts/package-macos.sh target/release/bundle/macos/库存抢东西.app release-output
+      - run: sh scripts/package-macos.sh target/release/bundle/macos/Apple 取货监控.app release-output
       - uses: actions/upload-artifact@v4
         with:
-          name: Inventory-Rush-macOS
+          name: Apple-Pickup-Watcher-macOS
           path: |
             release-output/*.zip
             release-output/SHA256SUMS

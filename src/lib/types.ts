@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * 与 Rust 侧一一对应的类型。
  *
@@ -87,6 +88,8 @@ export interface NearbyStore extends Store {
 }
 
 export interface Settings {
+  language: "zh" | "en";
+  lanEnabled: boolean;
   locale: string;
   targets: Target[];
   intervalSeconds: number;
@@ -142,9 +145,9 @@ export function describeAdvice(advice: TroubleAdvice): string {
     case "try_another_network":
       // 先说动作，再说原因，而且短：界面上这句话是在一屏告警里被扫到的，
       // 不是被读完的。
-      return "换成手机热点或另一条网络，通常立刻恢复。这是 Apple 在拦这条网络的请求，同一时刻浏览器多半照常。";
+      return t("换成手机热点或另一条网络，通常立刻恢复。这是 Apple 在拦这条网络的请求，同一时刻浏览器多半照常。");
     case "wait_for_update":
-      return "需要等程序更新，改设置或换网络都解决不了。";
+      return t("需要等程序更新，改设置或换网络都解决不了。");
     default:
       return assertNever(advice);
   }
@@ -152,7 +155,7 @@ export function describeAdvice(advice: TroubleAdvice): string {
 
 /** 走到这里说明有分支没处理。放在 `default` 里，漏掉的分支会变成编译错误。 */
 export function assertNever(x: never): never {
-  throw new Error(`未处理的分支：${JSON.stringify(x)}`);
+  throw new Error(t(`未处理的分支：${JSON.stringify(x)}`));
 }
 
 /** 界面上用于区分的四种展示状态。 */
@@ -172,9 +175,9 @@ export function describeAvailability(a: Availability): {
 } {
   switch (a.kind) {
     case "in_stock":
-      return { label: "有货", tone: "inStock", detail: null };
+      return { label: t("有货"), tone: "inStock", detail: null };
     case "out_of_stock":
-      return { label: "无货", tone: "outOfStock", detail: null };
+      return { label: t("无货"), tone: "outOfStock", detail: null };
     case "unknown":
       return describeUnknown(a);
     default:
@@ -189,31 +192,31 @@ function describeUnknown(a: { kind: "unknown" } & UnknownReason): {
 } {
   switch (a.reason) {
     case "not_yet_checked":
-      return { label: "待查询", tone: "pending", detail: "尚未轮到这一项" };
+      return { label: t("待查询"), tone: "pending", detail: t("尚未轮到这一项") };
     case "pickup_not_open":
-      return { label: "未开放", tone: "pending", detail: `取货查询尚未开放：${a.message}` };
+      return { label: t("未开放"), tone: "pending", detail: t(`取货查询尚未开放：${a.message}`) };
     case "blocked":
       return {
-        label: "未知",
+        label: t("未知"),
         tone: "unknown",
-        detail: `请求被 Apple 拦截：${a.detail}`,
+        detail: t(`请求被 Apple 拦截：${a.detail}`),
       };
     case "rate_limited":
       return {
-        label: "未知",
+        label: t("未知"),
         tone: "unknown",
-        detail: "请求过于频繁被限流，正在退避",
+        detail: t("请求过于频繁被限流，正在退避"),
       };
     case "schema_drift":
       return {
-        label: "未知",
+        label: t("未知"),
         tone: "unknown",
-        detail: `接口返回结构与预期不符：${a.field} = ${a.raw}`,
+        detail: t(`接口返回结构与预期不符：${a.field} = ${a.raw}`),
       };
     case "apple_error":
-      return { label: "未知", tone: "unknown", detail: `Apple 返回错误：${a.message}` };
+      return { label: t("未知"), tone: "unknown", detail: t(`Apple 返回错误：${a.message}`) };
     case "transport":
-      return { label: "未知", tone: "unknown", detail: `网络请求失败：${a.detail}` };
+      return { label: t("未知"), tone: "unknown", detail: t(`网络请求失败：${a.detail}`) };
     default:
       return assertNever(a);
   }

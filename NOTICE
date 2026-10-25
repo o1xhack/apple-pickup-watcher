@@ -1,4 +1,4 @@
-库存抢东西 / Inventory Rush — fork notice (2026-10-25)
+Apple 取货监控 / Apple Pickup Watcher — fork notice (2026-10-25)
 
 This fork is maintained by o1xhack.
 Immediate upstream: https://github.com/ENCHIGO/apple-pickup-watcher
@@ -9,7 +9,7 @@ Copyright (C) 2026 o1xhack, for modifications in this fork.
 2026-10-16—2026-10-25: Added US ZIP/store discovery, persistent SQLite inventory
 history and statistics, bilingual mobile web controls, per-target Bark critical
 alerts, optional global repeat alerts, browser-based queries with shared cooldown
-and recovery, and installed-app lifecycle fixes. Renamed the fork Inventory Rush.
+and recovery, and installed-app lifecycle fixes. Renamed the fork Apple Pickup Watcher.
 Notification-only: this fork does not automate checkout or place orders.
 
 ================================================================================

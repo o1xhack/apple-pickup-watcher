@@ -117,6 +117,15 @@ impl ConfigError {
     }
 }
 
+/// 界面与新通知共用的语言；与 Apple 查询地区独立。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    #[default]
+    Zh,
+    En,
+}
+
 /// 持久化的用户设置。
 ///
 /// 字段名跨 IPC 边界要和前端对齐，所以统一小驼峰，与 [`Target`]、
@@ -130,6 +139,10 @@ impl ConfigError {
 pub struct Settings {
     /// 上次选择的地区 locale。
     pub locale: String,
+    pub language: Language,
+    /// 局域网访问需显式开启，令牌只通过可信的本机 App 分享。
+    pub lan_enabled: bool,
+    pub lan_access_token: String,
     /// 监控目标列表。
     pub targets: Vec<Target>,
     /// 每轮查询之间的间隔秒数。
@@ -174,6 +187,9 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             locale: fallback_locale().to_string(),
+            language: Language::default(),
+            lan_enabled: false,
+            lan_access_token: String::new(),
             targets: Vec::new(),
             interval_seconds: DEFAULT_INTERVAL_SECONDS,
             watching_enabled: false,
@@ -681,6 +697,9 @@ impl LegacySettings {
         // 一个缺字段的老文件不该在迁移途中把用户的提示音悄悄关掉。
         let mut settings = Settings {
             locale: self.locale.unwrap_or(fallback.locale),
+            language: Language::default(),
+            lan_enabled: false,
+            lan_access_token: String::new(),
             targets: self
                 .targets
                 .into_iter()

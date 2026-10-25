@@ -43,18 +43,21 @@ struct WebState {
     app: AppHandle,
 }
 
-/// 仅监听本机，由已配置的 Tailscale Serve 提供私有访问，不再生成网页登录码。
+/// 保留本机/Tailscale 访问；远端访问默认关闭，启用后 API 仍须设备访问令牌。
 pub fn start(app: AppHandle) -> Result<(), String> {
-    let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, PORT))
+    let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::UNSPECIFIED, PORT))
         .map_err(|e| e.to_string())?;
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let state = WebState { app: app.clone() };
     let router = router(state);
     tauri::async_runtime::spawn(async move {
         let result = match tokio::net::TcpListener::from_std(listener) {
-            Ok(listener) => axum::serve(listener, router)
-                .await
-                .map_err(|e| e.to_string()),
+            Ok(listener) => axum::serve(
+                listener,
+                router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await
+            .map_err(|e| e.to_string()),
             Err(error) => Err(error.to_string()),
         };
         if let Err(error) = result {
@@ -75,7 +78,12 @@ fn router(state: WebState) -> Router {
             get(|| async {
                 (
                     [("content-type", "text/javascript; charset=utf-8")],
-                    include_str!("../../web/i18n.js"),
+                    concat!(
+                        "const translations = ",
+                        include_str!("../../web/translations.json"),
+                        ";\n",
+                        include_str!("../../web/i18n.js")
+                    ),
                 )
             }),
         )
@@ -114,8 +122,10 @@ fn router(state: WebState) -> Router {
         .route("/api/run", post(run))
         .route("/api/interval", post(interval))
         .route("/api/repeat-alerts", post(repeat_alerts))
+        .route("/api/language", post(language))
         .route("/api/notification-options", post(notification_options))
         .layer(DefaultBodyLimit::max(256 * 1024))
+        .layer(middleware::from_fn_with_state(state.clone(), lan_guard))
         .layer(middleware::from_fn(guard))
         .with_state(state)
 }
@@ -154,6 +164,117 @@ async fn statistics(
 
 fn error(status: StatusCode, message: &str) -> Response {
     (status, Json(json!({"error":message}))).into_response()
+}
+
+/// Same-machine proxies (including the existing Tailscale Serve path) retain their
+/// current behavior. Direct LAN reads and writes require an enabled share and token.
+fn allow_remote(
+    peer: Option<std::net::IpAddr>,
+    api: bool,
+    enabled: bool,
+    expected: &str,
+    provided: Option<&str>,
+) -> bool {
+    use subtle::ConstantTimeEq;
+    if peer.is_some_and(|ip| ip.is_loopback()) {
+        return true;
+    }
+    if !peer.is_some_and(|ip| matches!(ip, std::net::IpAddr::V4(ip) if ip.is_private())) || !enabled
+    {
+        return false;
+    }
+    if !api {
+        return true;
+    }
+    expected.len() == 64
+        && provided.is_some_and(|value| bool::from(value.as_bytes().ct_eq(expected.as_bytes())))
+}
+async fn lan_guard(
+    State(web): State<WebState>,
+    request: axum::extract::Request,
+    next: Next,
+) -> Response {
+    let peer = request
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|info| info.0.ip());
+    let api = request.uri().path().starts_with("/api/");
+    let provided = request
+        .headers()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "));
+    let settings = web.app.state::<AppState>().settings_snapshot();
+    if !allow_remote(
+        peer,
+        api,
+        settings.lan_enabled,
+        &settings.lan_access_token,
+        provided,
+    ) {
+        return error(
+            StatusCode::UNAUTHORIZED,
+            "请从电脑 App 复制局域网访问链接 / Copy the LAN access link from the desktop app",
+        );
+    }
+    next.run(request).await
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebAccess {
+    local_url: String,
+    lan_enabled: bool,
+    lan_urls: Vec<LanUrl>,
+}
+#[derive(serde::Serialize)]
+pub struct LanUrl {
+    label: String,
+    url: String,
+}
+#[tauri::command]
+pub fn web_access(app: AppHandle) -> WebAccess {
+    let settings = app.state::<AppState>().settings_snapshot();
+    let mut lan_urls = Vec::new();
+    if settings.lan_enabled && settings.lan_access_token.len() == 64 {
+        for interface in if_addrs::get_if_addrs().unwrap_or_default() {
+            if interface.name.starts_with("utun") {
+                continue;
+            }
+            if let std::net::IpAddr::V4(ip) = interface.ip()
+                && ip.is_private()
+            {
+                let label = format!("http://{ip}:{PORT}");
+                let url = format!("{label}/#access={}", settings.lan_access_token);
+                if !lan_urls.iter().any(|entry: &LanUrl| entry.label == label) {
+                    lan_urls.push(LanUrl { label, url });
+                }
+            }
+        }
+    }
+    WebAccess {
+        local_url: format!("http://127.0.0.1:{PORT}"),
+        lan_enabled: settings.lan_enabled,
+        lan_urls,
+    }
+}
+#[tauri::command]
+pub async fn set_lan_enabled(app: AppHandle, enabled: bool) -> Result<WebAccess, String> {
+    {
+        let state = app.state::<AppState>();
+        let _operation = state.operations.lock().await;
+        let mut settings = state.settings_snapshot();
+        settings.lan_enabled = enabled;
+        if enabled && settings.lan_access_token.len() != 64 {
+            settings.lan_access_token = rand::random::<[u8; 32]>()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+        }
+        state.put_settings(settings)?;
+    }
+    let _ = app.emit("watcher://remote-change", ());
+    Ok(web_access(app))
 }
 
 async fn guard(request: axum::extract::Request, next: Next) -> Response {
@@ -195,7 +316,7 @@ async fn snapshot(State(web): State<WebState>) -> Response {
     Json(json!({"rows":state.watcher.snapshot().await, "running":state.watcher.is_running().await,
         "uiAssetMode":if tauri::is_dev() {"development"} else {"embedded"}, "queryTransport":state.client.transport().label(), "locale":settings.locale, "intervalSeconds":settings.interval_seconds, "revision":revision(&settings),
         "colorNames": &*apw_core::display::COLOR_NAMES, "pushConfigured":!settings.bark_url.is_empty(),
-        "repeatInStock":settings.repeat_in_stock, "notificationLinkMode":settings.notification_link_mode, "paymentPreference":settings.payment_preference,
+        "language":settings.language, "repeatInStock":settings.repeat_in_stock, "notificationLinkMode":settings.notification_link_mode, "paymentPreference":settings.payment_preference,
         "history":state.history.as_ref().map(|h|h.status())})).into_response()
 }
 
@@ -334,6 +455,18 @@ async fn run(State(web): State<WebState>, Json(request): Json<Run>) -> Response 
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LanguageUpdate {
+    language: apw_core::config::Language,
+}
+async fn language(State(web): State<WebState>, Json(request): Json<LanguageUpdate>) -> Response {
+    match super::set_language(web.app, request.language).await {
+        Ok(language) => Json(json!({"language":language})).into_response(),
+        Err(message) => error(StatusCode::BAD_REQUEST, &message),
+    }
+}
+
+#[derive(Deserialize)]
 struct RepeatAlerts {
     enabled: bool,
 }
@@ -418,5 +551,27 @@ mod tests {
         target.critical_alert = true;
         settings.targets = vec![target];
         assert_ne!(revision(&settings), ordinary);
+    }
+}
+
+#[cfg(test)]
+mod lan_tests {
+    use super::allow_remote;
+    #[test]
+    fn lan_access_requires_explicit_enable_and_matching_token_for_every_api_request() {
+        let local = Some("127.0.0.1".parse().unwrap());
+        let lan = Some("192.168.1.20".parse().unwrap());
+        let public = Some("8.8.8.8".parse().unwrap());
+        let token = "a".repeat(64);
+        assert!(allow_remote(local, true, false, "", None));
+        assert!(!allow_remote(lan, false, false, &token, Some(&token)));
+        assert!(!allow_remote(lan, true, false, &token, Some(&token)));
+        assert!(allow_remote(lan, false, true, &token, None));
+        assert!(!allow_remote(lan, true, true, &token, None));
+        assert!(!allow_remote(lan, true, true, &token, Some("wrong")));
+        assert!(allow_remote(lan, true, true, &token, Some(&token)));
+        assert!(!allow_remote(public, true, true, &token, Some(&token)));
+        assert!(!allow_remote(None, true, true, &token, Some(&token)));
+        assert!(!allow_remote(lan, true, true, "", Some("")));
     }
 }

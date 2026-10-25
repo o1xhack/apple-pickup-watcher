@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 
@@ -29,7 +30,7 @@ export function MultiCombobox({
   placeholder,
   searchPlaceholder,
   emptyText,
-  countLabel = (n) => `已选 ${n} 项`,
+  countLabel = (n) => t(`已选 ${n} 项`),
   disabled,
   className,
 }: {
@@ -115,9 +116,7 @@ export function MultiCombobox({
                 className="h-7 px-2"
                 onClick={() => onChange(options.map((o) => o.value))}
                 disabled={options.length === 0 || selected.length === options.length}
-              >
-                全选
-              </Button>
+              >{t("全选")}</Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -125,9 +124,7 @@ export function MultiCombobox({
                 className="h-7 px-2"
                 onClick={() => onChange([])}
                 disabled={selected.length === 0}
-              >
-                清空
-              </Button>
+              >{t("清空")}</Button>
             </div>
           </div>
         </Command>

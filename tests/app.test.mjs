@@ -73,14 +73,14 @@ function renderApp() {
   }
   const isPushInput = (element) => /^push-\d+$/.test(element?.props?.id ?? "");
   const isAddPush = (element) => element.type === "Button" &&
-    Array.isArray(element.props.children) && element.props.children.includes(" 添加推送地址");
+    Array.isArray(element.props.children) && element.props.children.some(child => typeof child === "string" && child.trim() === '添加推送地址');
   return {
     proxyRow: (index) => control((element) => element?.props?.id === `proxy-${index}`),
     proxyValues: () => all((element) => /^proxy-\d+$/.test(element?.props?.id ?? "")).map((element) => element.props.value),
     removeProxy: (index) => control((element) => element?.props?.["aria-label"] === `删除代理地址 ${index + 1}`),
     rejectedProxies: () => all((element) => element.type === "Badge" && element.props.children === "未生效").length,
     addProxy: () => control((element) => element.type === "Button" &&
-      Array.isArray(element.props.children) && element.props.children.includes(" 添加代理")),
+      Array.isArray(element.props.children) && element.props.children.some(child => typeof child === "string" && child.trim() === '添加代理')),
     pushRow: (index) => control((element) => element?.props?.id === `push-${index}`),
     pushValues: () => all(isPushInput).map((element) => element.props.value),
     // 渠道标签按行的顺序排列；还没保存的行没有标签。
@@ -91,12 +91,12 @@ function renderApp() {
     hasAddPush: () => all(isAddPush).length > 0,
     choice: (placeholder) => control((element) => element?.props?.placeholder === placeholder),
     addButton: () => control((element) => element.type === "Button" &&
-      Array.isArray(element.props.children) && element.props.children.includes(" 添加")),
+      Array.isArray(element.props.children) && element.props.children.some(child => typeof child === "string" && child.trim() === '添加')),
     scaleHint: () => control((element) => element.type === "span" &&
-      Array.isArray(element.props.children) && element.props.children.includes(" 个型号 × ")),
+      Array.isArray(element.props.children) && element.props.children.some(child => typeof child === "string" && child.trim() === '个型号 ×')),
     critical: () => control((element) => element?.props?.id === "target-critical"),
     rowCritical: () => control((element) => (element?.props?.["aria-label"] ?? "").startsWith("重要警告：")),
-    clearAll: () => control((element) => element.type === "Button" && Array.isArray(element.props.children) && element.props.children.includes(" 清空全部")),
+    clearAll: () => control((element) => element.type === "Button" && Array.isArray(element.props.children) && element.props.children.some(child => typeof child === "string" && child.trim() === '清空全部')),
     linkMode: () => control((element) => element?.props?.id === "notification-link-mode"),
     payment: () => control((element) => element?.props?.id === "payment-preference"),
     hasPayment: () => all((element) => element?.props?.id === "payment-preference").length > 0,

@@ -24,6 +24,14 @@ pub fn stock_notice(
     target: &crate::model::Target,
     product: Option<&crate::model::Product>,
 ) -> (String, String) {
+    stock_notice_in_language(target, product, crate::config::Language::Zh)
+}
+
+pub fn stock_notice_in_language(
+    target: &crate::model::Target,
+    product: Option<&crate::model::Product>,
+    language: crate::config::Language,
+) -> (String, String) {
     let color = product
         .map(|p| p.color.as_str())
         .filter(|c| !c.is_empty())
@@ -40,9 +48,13 @@ pub fn stock_notice(
         if let Some(prefix) = title.strip_suffix(&format!(" {color}")) {
             title = prefix.to_string();
         }
-        let label = COLOR_NAMES
-            .get(color)
-            .map_or_else(|| color.to_string(), |zh| format!("{zh} · {color}"));
+        let label = if language == crate::config::Language::En {
+            color.to_string()
+        } else {
+            COLOR_NAMES
+                .get(color)
+                .map_or_else(|| color.to_string(), |zh| format!("{zh} · {color}"))
+        };
         lines.push(label);
     }
     lines.push(target.store_title.clone());
@@ -103,5 +115,31 @@ mod tests {
         );
         assert_eq!(product_label("iPhone Air 黑色"), "iPhone Air 黑色");
         assert_eq!(product_label("iPhone Future Color"), "iPhone Future Color");
+    }
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+    #[test]
+    fn english_stock_notice_uses_english_color_without_changing_target_or_store() {
+        let target: crate::model::Target = serde_json::from_value(serde_json::json!({
+            "locale":"en_US", "storeNumber":"R101", "storeTitle":"California-Stoneridge Mall",
+            "partNumber":"SKU", "productName":"iPhone Duo 1TB Star White", "criticalAlert":false
+        }))
+        .unwrap();
+        assert_eq!(
+            stock_notice_in_language(&target, None, crate::config::Language::En),
+            (
+                "iPhone Duo 1TB".into(),
+                "Star White\nCalifornia-Stoneridge Mall".into()
+            )
+        );
+        assert_eq!(
+            stock_notice_in_language(&target, None, crate::config::Language::Zh),
+            stock_notice(&target, None)
+        );
+        assert_eq!(target.product_name, "iPhone Duo 1TB Star White");
+        assert!(!target.critical_alert);
     }
 }

@@ -185,3 +185,14 @@ test("a lookup failure clears old distances and can recover without pretending t
   assert.match(app.snapshot().nearbyError, /Apple blocked/);
   assert.equal(app.snapshot().nearbyLoading, false);
 });
+
+test('language selection updates only language and issues no monitor or catalog commands', async()=>{
+ const app=setup();const before=app.snapshot().settings;
+ app.handlers.set_language=({language})=>language;
+ await app.setLanguage('en');
+ assert.deepEqual(app.snapshot().settings,{...before,language:'en'});
+ assert.deepEqual(app.calls,[{command:'set_language',args:{language:'en'}}]);
+ app.handlers.set_language=()=>{throw Error('disk unavailable')};
+ await assert.rejects(app.setLanguage('zh'),/disk unavailable/);
+ assert.equal(app.snapshot().settings.language,'en');
+});

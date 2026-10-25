@@ -85,6 +85,9 @@ fn 目标(store: &str, part: &str) -> Target {
 fn 样例设置() -> Settings {
     Settings {
         locale: "zh_CN".into(),
+        language: Default::default(),
+        lan_enabled: false,
+        lan_access_token: String::new(),
         targets: vec![目标("R683", "MG724CH/A"), 目标("R448", "MG0A4CH/A")],
         interval_seconds: 45,
         watching_enabled: true,
@@ -501,6 +504,9 @@ fn 设置的线上格式是小驼峰() {
         "locale",
         "targets",
         "intervalSeconds",
+        "language",
+        "lanEnabled",
+        "lanAccessToken",
         "watchingEnabled",
         "repeatInStock",
         "barkUrl",
@@ -514,7 +520,7 @@ fn 设置的线上格式是小驼峰() {
         assert!(obj.contains_key(key), "缺少字段 {key}：{value}");
     }
     assert!(!obj.contains_key("interval_seconds"), "不该有蛇形字段");
-    assert_eq!(obj.len(), 12);
+    assert_eq!(obj.len(), 15);
 }
 
 #[test]
@@ -674,4 +680,32 @@ fn 填在bark一栏的飞书地址规范化后挪到飞书() {
     let once = s.clone();
     s.normalize();
     assert_eq!(s, once);
+}
+
+#[test]
+fn shared_language_survives_restart_and_defaults_old_settings_without_touching_monitoring() {
+    use apw_core::config::Language;
+    let dir = 临时目录::new("language");
+    let store = SettingsStore::at(dir.设置路径());
+    let mut settings = 样例设置();
+    let mut old = serde_json::to_value(&settings).unwrap();
+    old.as_object_mut().unwrap().remove("language");
+    fs::write(dir.设置路径(), serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(store.load().unwrap(), settings);
+    settings.language = Language::En;
+    store.save(&settings).unwrap();
+    assert_eq!(SettingsStore::at(dir.设置路径()).load().unwrap(), settings);
+    assert!(serde_json::from_str::<Language>("\"de\"").is_err());
+}
+
+#[test]
+fn lan_sharing_is_off_for_old_settings_and_preserves_a_generated_token_across_reload() {
+    let dir = 临时目录::new("lan-share");
+    let store = SettingsStore::at(dir.设置路径());
+    let mut settings = 样例设置();
+    assert!(!settings.lan_enabled && settings.lan_access_token.is_empty());
+    settings.lan_enabled = true;
+    settings.lan_access_token = "a".repeat(64);
+    store.save(&settings).unwrap();
+    assert_eq!(SettingsStore::at(dir.设置路径()).load().unwrap(), settings);
 }

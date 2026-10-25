@@ -127,15 +127,18 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "apw-app"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "apw-core",
  "axum",
+ "if-addrs",
+ "rand 0.9.5",
  "reqwest 0.12.28",
  "rusqlite",
  "serde",
  "serde_json",
  "sha2",
+ "subtle",
  "tauri",
  "tauri-build",
  "tauri-plugin-notification",
@@ -147,7 +150,7 @@ dependencies = [
 
 [[package]]
 name = "apw-cli"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "apw-core",
  "clap",
@@ -160,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "apw-core"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "dirs",
  "futures-util",
@@ -2315,6 +2318,16 @@ checksum = "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "if-addrs"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0a05c691e1fae256cf7013d99dad472dc52d5543322761f83ec8d47eab40d2b"
+dependencies = [
+ "libc",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

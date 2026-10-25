@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-const language=fs.readFileSync(new URL('../web/i18n.js',import.meta.url),'utf8').replace('initializeLanguage();','');
+const language='const translations = '+fs.readFileSync(new URL('../web/translations.json',import.meta.url),'utf8')+';\n'+fs.readFileSync(new URL('../web/i18n.js',import.meta.url),'utf8').replace('initializeLanguage();','');
 const statistics=fs.readFileSync(new URL('../web/statistics.js',import.meta.url),'utf8').split("$('tab-monitor').onclick=")[0];
 function context(lang='zh') {
  const elements=new Map();const element=id=>{if(!elements.has(id))elements.set(id,{value:'',checked:false});return elements.get(id)};

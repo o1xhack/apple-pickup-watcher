@@ -180,6 +180,21 @@ fn get_settings(state: tauri::State<'_, AppState>) -> Settings {
     state.settings_snapshot()
 }
 
+/// 保存独立语言字段，避免跨端改动覆盖监控和推送设置。
+#[tauri::command]
+async fn set_language(
+    app: AppHandle,
+    language: apw_core::config::Language,
+) -> Result<apw_core::config::Language, String> {
+    let state = app.state::<AppState>();
+    let _operation = state.operations.lock().await;
+    let mut next = state.settings_snapshot();
+    next.language = language;
+    state.put_settings(next)?;
+    let _ = app.emit("watcher://remote-change", ());
+    Ok(language)
+}
+
 #[tauri::command]
 async fn save_settings(
     state: tauri::State<'_, AppState>,
@@ -189,6 +204,9 @@ async fn save_settings(
     let current = state.settings_snapshot();
     settings.targets = current.targets;
     settings.watching_enabled = current.watching_enabled;
+    settings.language = current.language;
+    settings.lan_enabled = current.lan_enabled;
+    settings.lan_access_token = current.lan_access_token;
     let mut next = settings;
     next.normalize();
     state.catalog.attach_companions(&mut next.targets);
@@ -336,15 +354,22 @@ async fn is_running(state: tauri::State<'_, AppState>) -> Result<bool, String> {
 /// 手动试一次提醒，让用户在真正抢购之前确认铃声和推送都通。
 #[tauri::command]
 async fn test_notify(app: AppHandle, critical: Option<bool>) -> Result<(), String> {
+    let language = app.state::<AppState>().settings_snapshot().language;
+    let (title, body) = match language {
+        apw_core::config::Language::Zh => (
+            "有货了（测试）",
+            "Apple 库存监控：这是一条测试提醒，非实际到货。",
+        ),
+        apw_core::config::Language::En => (
+            "In stock (test)",
+            "Apple Inventory Monitor: test notification only, not actual stock.",
+        ),
+    };
     dispatch_notification(
         &app,
         // 标题刻意和真实到货提醒一样带「有货了」：飞书自定义机器人的关键词
         // 安全模式只放行含关键词的消息，测试文案若不含，用户会误以为配置坏了。
-        Notification::new(
-            "有货了（测试）",
-            "Apple 库存监控：这是一条测试提醒，非实际到货。",
-        )
-        .with_critical_alert(critical.unwrap_or(false)),
+        Notification::new(title, body).with_critical_alert(critical.unwrap_or(false)),
     )
     .await
     .map_err(|e| e.to_string())
@@ -460,14 +485,18 @@ async fn pump_events(app: AppHandle, mut events: tokio::sync::mpsc::Receiver<Eve
                             .find(|p| p.part_number == target.part_number)
                     })
             });
-            let (title, body) = apw_core::display::stock_notice(target, product.as_ref());
-            let notification = Notification::new(title, body)
-                .with_critical_alert(target.critical_alert)
-                .with_bark_json();
             let settings = app
                 .try_state::<AppState>()
                 .map(|s| s.settings_snapshot())
                 .unwrap_or_default();
+            let (title, body) = apw_core::display::stock_notice_in_language(
+                target,
+                product.as_ref(),
+                settings.language,
+            );
+            let notification = Notification::new(title, body)
+                .with_critical_alert(target.critical_alert)
+                .with_bark_json();
             let notification = match apw_core::purchase_link::notification_url(
                 target,
                 product.as_ref(),
@@ -520,7 +549,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                 tauri::Error::AssetNotFound("默认窗口图标缺失，无法建立托盘".into())
             })?,
         )
-        .tooltip("库存抢东西")
+        .tooltip("Apple 取货监控")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -766,6 +795,9 @@ pub fn run() {
             target_revision,
             set_interval,
             set_repeat_in_stock,
+            set_language,
+            web::web_access,
+            web::set_lan_enabled,
             start_watching,
             stop_watching,
             is_running,

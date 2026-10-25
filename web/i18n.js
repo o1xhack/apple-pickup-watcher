@@ -1,38 +1,24 @@
 'use strict';
+// The secret stays in the fragment/session storage, never URL queries or access logs.
+function initializeAccess(){
+ const accessFragment=new URLSearchParams((location.hash||'').slice(1)).get('access');
+ if(accessFragment){sessionStorage.setItem('apw-access-token',accessFragment);history.replaceState(null,'',location.pathname+location.search)}
+}
+function accessHeaders(){const token=globalThis.sessionStorage?.getItem('apw-access-token');return token?{Authorization:'Bearer '+token}:{}}
 const webLanguage=localStorage.getItem('apw-language')==='en'?'en':'zh';
-const translations={
-'库存抢东西':'Inventory Rush','来源与修改声明':'Attribution & changes','GPL-3.0-or-later · 自由软件，无担保':'GPL-3.0-or-later · Free software, no warranty',
-'有货重复提醒（全部监控）':'Repeat in-stock alerts (all targets)','开启后，每轮查到有货都会提醒；关闭后，同一段连续有货只提醒一次。':'On: notify on every check that confirms stock. Off: notify once per continuous in-stock period.','重复提醒设置已保存':'Repeat alert setting saved',
-'Apple 库存监控':'Apple Pickup Watcher','正在同步…':'Syncing…','监控':'Monitoring','统计与历史':'Statistics & history','查询间隔':'Check interval','秒':'seconds','保存':'Save','手机每 3 秒同步 Mac 状态':'This page syncs with the Mac every 3 seconds',
-'通知链接':'Notification links','通知打开方式':'Open notification links in','网页（Apple 官网）':'Website (Apple)','网页付款方式':'Web payment preference','不预选付款方式':'No payment preference','Apple Card Monthly Installments（分期）':'Apple Card Monthly Installments',
-'改动即时保存，应用于之后的到货通知。网页链接仍可能被 iOS 转到 Apple Store App，可复制链接到 Safari 地址栏打开。':'Changes are saved immediately for future stock alerts. iOS may open web links in the Apple Store app; paste the link into Safari to open the website.',
-'仅预选美国 iPhone 的 Apple Card 分期，不包含换购和运营商。手动完成换购后，需刷新原标签页恢复分期选择。':'Only presets Apple Card installments for US iPhones. Trade-in and carrier must be chosen separately; refresh the same tab after trade-in to restore the payment choice.',
-'添加监控目标':'Add monitoring targets','取消编辑':'Cancel edit','地区':'Region','品类':'Category','美国 ZIP':'US ZIP','查找附近门店':'Find nearby stores','美国门店按 ZIP 查找并排序':'US stores are searched and sorted by ZIP','选择门店':'Select stores','机型':'Model','容量':'Storage','颜色':'Color','Critical Alerts（重要警告）':'Critical Alerts',
-'只应用于本次添加或编辑的目标。iPhone 需允许 Bark 的「重要警告」。':'Applies only to targets added or edited here. Allow Critical Alerts for Bark on your iPhone.','添加并开始监控':'Add & start monitoring','刷新':'Refresh','清空全部':'Clear all',
-'Apple Pickup Watcher · 提醒分组：Apple 库存监控':'Apple Pickup Watcher · Bark notifications','库存由 Mac 查询；此网页查看和编辑同一份监控。':'The Mac checks inventory; this page views and edits the same monitor.',
-'● 监听中':'● Monitoring','已暂停':'Paused','暂停监控':'Pause monitoring','开始监控':'Start monitoring','Bark 已配置，通知由 Mac 发送。':'Bark is configured. Notifications are sent by the Mac.','Mac 尚未配置 Bark，手机网页不会自行发送通知。':'Bark is not configured on the Mac. This page cannot send notifications independently.',
-'有货':'In stock','无货':'Out of stock','未开放':'Pickup not open','未知':'Unknown','待查询':'Waiting','查询未取得明确结果':'No definitive inventory response','重要警告':'Critical alert','普通提醒':'Normal alert','编辑':'Edit','删除':'Delete','最后查询':'Last checked',
-'没有匹配的监控':'No matching targets','还没有监控目标，在上面添加后会自动开始。':'No targets yet. Add targets above to start monitoring.','请输入 5 位 ZIP 或 ZIP+4':'Enter a 5-digit ZIP or ZIP+4','正在查询附近门店…':'Finding nearby stores…','查询失败，可重试':'Search failed. Please retry.','已保存，Mac 已同步。':'Saved and synced with the Mac.','通知链接设置已保存':'Notification link settings saved','编辑时请选择 1 个门店和 1 个完整型号':'Choose one store and one complete configuration when editing','此型号不在目录中，无法编辑。':'This product is not in the catalog and cannot be edited.','编辑监控目标':'Edit monitoring target','保存修改':'Save changes','邮编已改，请重新查找附近门店':'ZIP changed. Search for nearby stores again.','查询间隔已保存':'Check interval saved','清空全部监控目标并停止监控？':'Clear all targets and stop monitoring?','请求失败':'Request failed',
-'本次开始以来':'Since last start','今天':'Today','全部历史':'All history','自定义日期':'Custom dates','查询统计':'Apply filters','分享统计':'Share statistics','包括已删除的历史目标':'Include deleted historical targets','所有日期和时间均为洛杉矶时间。默认仅统计当前监控目标。':'All dates and times use Los Angeles time. Only current targets are included by default.',
-'网络请求统计仅包含已保存的请求，开始时间可能晚于库存历史。':'Network counts include saved requests only; recording may have started later than inventory history.','扫描轮次':'Scan rounds','配置×门店检查次数':'Store × configuration checks','检查目标数':'Distinct targets checked','有货检查次数':'In-stock observations','无货检查次数':'Out-of-stock observations','未开放检查次数':'Pickup-not-open observations','未知或失败次数':'Unknown / failed observations','发现有货区间':'In-stock sighting intervals','无货→有货候选':'Out-of-stock → in-stock candidates','应用全部 HTTP 请求':'Recorded app-wide HTTP requests',
-'检查次数不代表手机台数；持续有货不代表多次补货；未知不等于无货。':'Checks are not a count of physical phones. Repeated in-stock observations are not separate restocks. Unknown does not mean out of stock.',
-'扫描轮次按已保存的实际采样轮次统计；HTTP 请求数覆盖应用全部目标。范围开始或中断后首次有货不视为补货。':'Rounds count saved sampling cycles; HTTP requests cover all app targets. An initial in-stock observation or one after a gap is not classified as a restock.',
-'机型与配置':'Models & configurations','扫描门店':'Stores checked','采样历史':'Observation history','每页最多 100 条门店与配置采样，按实际检查时间倒序。显示前 10,100 条，可缩小日期范围查看更早记录。':'Up to 100 store/configuration observations per page, newest first. Browse up to 10,100 records; narrow the dates to view older records.','上一页':'Previous','下一页':'Next','时间':'Time','机型 / 配置':'Model / configuration','结果':'Result','门店':'Store','零件号':'Part number','检查次数':'Checks','首次或恢复后发现':'First seen or recovered','请选择开始和结束日期':'Select start and end dates','正在读取历史…':'Reading history…','此范围没有已保存的采样记录':'No saved observations in this range','轮':'rounds','次检查':'checks','次有货检查':'in-stock checks','历史统计暂不可用':'History statistics unavailable','历史记录存在错误':'History storage error','Apple 库存监控统计':'Apple inventory statistics','统计已复制，可粘贴分享':'Statistics copied. Paste to share.','复制失败':'Copy failed',
-'搜索机型、门店或颜色':'Search models, stores or colors','United States':'United States','美国':'United States','中国大陆':'China mainland','中国香港':'Hong Kong','中国台湾':'Taiwan','日本':'Japan','新加坡':'Singapore','澳大利亚':'Australia','马来西亚':'Malaysia',
-'已选':'selected','个型号':'configurations','家门店':'stores','条监控':'targets','家附近门店，按距离排序，默认选最近三家':'nearby stores, sorted by distance; the nearest three are selected',
-'已同步':'Synced','同步中断，正在重试：':'Sync interrupted, retrying: ','正在按请求预算、冷却或恢复策略调度':'Scheduling checks using request budgets, cooldowns or recovery',
-};
-Object.assign(translations,{
-'状态':'Status','请求错误仅统计已保存的 HTTP 400 及以上响应。':'Request errors count recorded HTTP responses with status 400 or higher.','筛选日期与目标':'Filters','本次启动':'This app session','截图模式':'Screenshot view','返回页面':'Back to dashboard','监控中':'Monitoring','等待重试':'Waiting to retry','库存观察':'INVENTORY WATCH','观察时间':'OBSERVATION PERIOD','当前库存':'LIVE INVENTORY','有货记录':'In-stock checks','监控配置':'Configurations','请求错误':'Request errors','种配置':'configurations','暂未发现可取货库存':'No pickup stock observed','已记录到可取货库存':'Pickup stock observed','最近采样':'Last sampled','暂无采样':'No observations yet','统计说明':'About these numbers',
-'扫描门店':'Stores checked'
-});
 const translationKeys=Object.keys(translations).sort((a,b)=>b.length-a.length);
 function tr(text){if(webLanguage!=='en')return String(text);let out=String(text);if(translations[out])return translations[out];for(const key of translationKeys)out=out.split(key).join(translations[key]);return out.replace(/Apple 每 (\d+) seconds查询/g,'Apple checks every $1 seconds').replace(/已选/g,'selected')}
-function translatePage(){document.documentElement.lang=webLanguage==='en'?'en':'zh-CN';document.title=tr('库存抢东西');if(webLanguage==='en'){
- const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode()){const n=walker.currentNode;if(!['SCRIPT','STYLE','OPTION'].includes(n.parentElement?.tagName))nodes.push(n)}
+function translatePage(){document.documentElement.lang=webLanguage==='en'?'en':'zh-CN';document.title=tr('Apple 取货监控');if(webLanguage==='en'){
+ const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode()){const n=walker.currentNode;if(!['SCRIPT','STYLE','OPTION'].includes(n.parentElement?.tagName)&&!n.parentElement?.closest('[translate="no"]'))nodes.push(n)}
  for(const n of nodes){const value=tr(n.nodeValue);if(value!==n.nodeValue)n.nodeValue=value}
  for(const node of document.querySelectorAll('option')){const value=tr(node.textContent);if(value!==node.textContent)node.textContent=value}
  for(const node of document.querySelectorAll('[placeholder]')){const value=tr(node.placeholder);if(value!==node.placeholder)node.placeholder=value}
  }}
-function initializeLanguage(){const select=document.getElementById('language');select.value=webLanguage;select.onchange=()=>{localStorage.setItem('apw-language',select.value);location.reload()};translatePage();if(webLanguage==='en'){let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;translatePage()})}).observe(document.body,{childList:true,subtree:true,characterData:true})}}
+function syncLanguage(language){
+ if(language!=="zh"&&language!=="en")return true;
+ localStorage.setItem('apw-language',language);
+ if(language!==webLanguage){location.reload();return false}
+ return true;
+}
+function initializeLanguage(){initializeAccess();const select=document.getElementById('language');select.value=webLanguage;select.onchange=async()=>{const next=select.value;select.disabled=true;try{const response=await fetch(new URL('api/language',location.href),{method:'POST',headers:{...accessHeaders(),'Content-Type':'application/json','X-APW-Request':'1'},body:JSON.stringify({language:next})});if(!response.ok)throw Error('Unable to save language');const saved=await response.json();syncLanguage(saved.language)}catch(error){select.value=webLanguage;window.alert(String(error))}finally{select.disabled=false}};translatePage();if(webLanguage==='en'){let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;translatePage()})}).observe(document.body,{childList:true,subtree:true,characterData:true})}}
 initializeLanguage();

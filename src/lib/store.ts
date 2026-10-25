@@ -1,3 +1,4 @@
+import { setUiLanguage } from "@/lib/i18n";
 import { productLabel } from "./display";
 /**
  * 界面状态的唯一入口。
@@ -68,6 +69,8 @@ export interface UiState {
 
 const DEFAULT_SETTINGS: Settings = {
   locale: "zh_CN",
+  language: "zh",
+  lanEnabled: false,
   targets: [],
   intervalSeconds: 30,
   watchingEnabled: false,
@@ -143,6 +146,7 @@ function subscribe(cb: () => void): () => void {
 }
 
 function update(patch: Partial<UiState>): void {
+  if (patch.settings) setUiLanguage(patch.settings.language);
   state = { ...state, ...patch };
   for (const cb of listeners) cb();
 }
@@ -293,6 +297,11 @@ export async function saveSettings(next: Settings): Promise<void> {
   } catch (err) {
     pushLog(`保存设置失败：${String(err)}`);
   }
+}
+
+export async function setLanguage(language: "zh" | "en"): Promise<void> {
+  const saved = await invoke<"zh" | "en">("set_language", { language });
+  update({ settings: { ...state.settings, language: saved } });
 }
 
 /** 全局重复提醒；不改动目标或其他通知设置。 */
