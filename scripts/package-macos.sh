@@ -5,6 +5,7 @@ APW_PACKAGE_ROOT="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)"
 APW_APP="${1:?Pass the built .app path}"
 APW_OUT="${2:?Pass an output directory}"
 [ "$(uname -s)" = Darwin ] || exit 1
+[ -f "$APW_APP/Contents/Info.plist" ] || { echo "Built app not found: $APW_APP" >&2; exit 1; }
 [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APW_APP/Contents/Info.plist")" = com.o1xhack.inventory-rush ] || exit 1
 APW_ARCH="$(uname -m)"
 APW_STAGE="$APW_OUT/Apple-Pickup-Watcher-macOS-$APW_ARCH"

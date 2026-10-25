@@ -32,7 +32,7 @@ jobs:
       - run: pnpm tauri build --bundles app --ci
         env:
           APW_REQUIRE_EMBEDDED_ASSETS: '1'
-      - run: sh scripts/package-macos.sh target/release/bundle/macos/Apple 取货监控.app release-output
+      - run: sh scripts/package-macos.sh "target/release/bundle/macos/Apple 取货监控.app" release-output
       - uses: actions/upload-artifact@v4
         with:
           name: Apple-Pickup-Watcher-macOS
