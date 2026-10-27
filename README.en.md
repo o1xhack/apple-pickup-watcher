@@ -1,5 +1,9 @@
 # Apple Pickup Watcher · Apple 取货监控
 
+> **🌐 [Apple Pickup Live · Nationwide stock lookup (US only)](https://pickup.o1xhack.com/)**
+>
+> An independently operated website we built by adapting this project. Browse saved iPhone Duo pickup availability across the United States by ZIP code, with history and statistics—no app installation required. The website is US-only; the desktop app supports multiple countries and regions. [Website source](https://github.com/o1xhack/apple-pickup-live).
+
 Apple Store pickup stock alerts with a desktop app and a bilingual mobile web dashboard.
 
 [中文](README.md) · [Download](https://github.com/o1xhack/apple-pickup-watcher/releases/latest) · [Attribution](NOTICE)

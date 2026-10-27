@@ -1,5 +1,9 @@
 # Apple 取货监控 · Apple Pickup Watcher
 
+> **🌐 [Apple Pickup Live · 全美库存查询（仅美国）](https://pickup.o1xhack.com/)**
+>
+> 我们基于本项目改造的独立网站，可按邮编查看美国全国 iPhone Duo 的已采集库存、历史记录和统计，无需安装 App。网站仅覆盖美国，桌面 App 支持多个国家／地区。[网站源码](https://github.com/o1xhack/apple-pickup-live)。
+
 Apple 直营店取货库存监控。选门店、选配置，有货通知；App 和手机网页查看同一份数据。
 
 [English](README.en.md) · [下载安装](https://github.com/o1xhack/apple-pickup-watcher/releases/latest) · [来源与许可](NOTICE)
@@ -15,7 +19,7 @@ Apple 直营店取货库存监控。选门店、选配置，有货通知；App �
 3. 选择地区、输入 ZIP、查找附近门店，选择机型／容量／颜色，点击「添加并开始监控」。
 4. 想推送到 iPhone：在运行设置里粘贴你自己的 Bark 推送地址。普通通知默认即可；重要警告须在 iPhone 给 Bark 授权。
 
-官方 v0.6.3 安装包已使用 Developer ID 签名、通过 Apple 公证并附加公证票据；首次打开仍可能出现 macOS 正常的下载来源确认。可用 Releases 的 SHA256 校验文件核对下载。自行构建或 CI 普通构建不自动获得公证。
+官方 macOS 安装包已使用 Developer ID 签名、通过 Apple 公证并附加公证票据；首次打开仍可能出现 macOS 正常的下载来源确认。可用 Releases 的 SHA256 校验文件核对下载。自行构建或 CI 普通构建不自动获得公证。
 
 ## App + 网页
 
