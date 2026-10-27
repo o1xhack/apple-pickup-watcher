@@ -250,6 +250,17 @@ impl Region {
             "zh_HK" => "zh-HK,zh;q=0.9",
             "zh_TW" => "zh-TW,zh;q=0.9",
             "ja_JP" => "ja-JP,ja;q=0.9",
+            "en_GB" => "en-GB,en;q=0.9",
+            "fr_FR" => "fr-FR,fr;q=0.9",
+            "de_DE" => "de-DE,de;q=0.9",
+            "it_IT" => "it-IT,it;q=0.9",
+            "es_ES" => "es-ES,es;q=0.9",
+            "nl_NL" => "nl-NL,nl;q=0.9",
+            "sv_SE" => "sv-SE,sv;q=0.9",
+            "fr_CH" => "fr-CH,fr;q=0.9",
+            "fr_BE" => "fr-BE,fr;q=0.9",
+            "de_AT" => "de-AT,de;q=0.9",
+            "tr_TR" => "tr-TR,tr;q=0.9",
             _ => "en-US,en;q=0.9",
         }
     }
@@ -367,8 +378,11 @@ const DEFAULT_FAMILIES: &[Family] = &[
 
 /// 内置地区表。
 ///
-/// 每个 `base_url` 都经过实际请求验证：以 `/shop/retail/pickup-message` 查询该地区
-/// 的真实门店号与零件号，均返回 HTTP 200 且带有 `partsAvailability`。
+/// Hermès pages are the final optional families; these storefronts do not sell them.
+const NON_HERMES_FAMILIES: &[Family] = DEFAULT_FAMILIES.split_at(DEFAULT_FAMILIES.len() - 2).0;
+
+/// 站点、门店与商品来自 Apple 官方目录。新增地区仍可能受网络拦截；
+/// 缺失或不可识别的取货响应始终保持 Unknown，不由目录存在推断库存。
 pub const REGIONS: &[Region] = &[
     Region {
         title: "中国大陆",
@@ -417,6 +431,72 @@ pub const REGIONS: &[Region] = &[
         locale: "en_US",
         base_url: "https://www.apple.com",
         families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "United Kingdom",
+        locale: "en_GB",
+        base_url: "https://www.apple.com/uk",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "France",
+        locale: "fr_FR",
+        base_url: "https://www.apple.com/fr",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Germany",
+        locale: "de_DE",
+        base_url: "https://www.apple.com/de",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Italy",
+        locale: "it_IT",
+        base_url: "https://www.apple.com/it",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Spain",
+        locale: "es_ES",
+        base_url: "https://www.apple.com/es",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Netherlands",
+        locale: "nl_NL",
+        base_url: "https://www.apple.com/nl",
+        families: NON_HERMES_FAMILIES,
+    },
+    Region {
+        title: "Sweden",
+        locale: "sv_SE",
+        base_url: "https://www.apple.com/se",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Switzerland",
+        locale: "fr_CH",
+        base_url: "https://www.apple.com/ch-fr",
+        families: DEFAULT_FAMILIES,
+    },
+    Region {
+        title: "Belgium",
+        locale: "fr_BE",
+        base_url: "https://www.apple.com/be-fr",
+        families: NON_HERMES_FAMILIES,
+    },
+    Region {
+        title: "Austria",
+        locale: "de_AT",
+        base_url: "https://www.apple.com/at",
+        families: NON_HERMES_FAMILIES,
+    },
+    Region {
+        title: "Türkiye",
+        locale: "tr_TR",
+        base_url: "https://www.apple.com/tr",
+        families: NON_HERMES_FAMILIES,
     },
 ];
 
@@ -506,6 +586,8 @@ impl Store {
             "ja_JP" => pick(postal).or_else(|| pick(city)),
             // 美国城市可能重名；没有邮编时退回单店查询，避免查到别的州。
             "en_US" => pick(postal),
+            "en_GB" | "fr_FR" | "de_DE" | "it_IT" | "es_ES" | "nl_NL" | "sv_SE" | "fr_CH"
+            | "fr_BE" | "de_AT" | "tr_TR" => pick(postal).or_else(|| pick(city)),
             _ => pick(city).or_else(|| pick(postal)),
         }
     }
@@ -615,7 +697,7 @@ mod tests {
 
     #[test]
     fn 地区表里每个站点都能拼出接口地址() {
-        assert_eq!(REGIONS.len(), 8);
+        assert_eq!(REGIONS.len(), 19);
         let cn = region_by_locale("zh_CN").expect("地区表里应当有中国大陆");
         assert_eq!(
             cn.pickup_message_url(),
@@ -623,7 +705,7 @@ mod tests {
         );
         // 中国大陆用独立域名，不能是 apple.com/cn —— 那正是上游拼错的地方。
         assert!(!cn.base_url.contains("apple.com/cn"));
-        assert!(region_by_locale("de_DE").is_none());
+        assert!(region_by_locale("xx_XX").is_none());
 
         for r in REGIONS {
             assert!(

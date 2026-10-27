@@ -80,6 +80,17 @@ const EMBEDDED_PRODUCTS: &[(&str, &str)] = &[
     ("en_AU", include_str!("../data/products_en_AU.json")),
     ("en_MY", include_str!("../data/products_en_MY.json")),
     ("en_US", include_str!("../data/products_en_US.json")),
+    ("en_GB", include_str!("../data/products_en_GB.json")),
+    ("fr_FR", include_str!("../data/products_fr_FR.json")),
+    ("de_DE", include_str!("../data/products_de_DE.json")),
+    ("it_IT", include_str!("../data/products_it_IT.json")),
+    ("es_ES", include_str!("../data/products_es_ES.json")),
+    ("nl_NL", include_str!("../data/products_nl_NL.json")),
+    ("sv_SE", include_str!("../data/products_sv_SE.json")),
+    ("fr_CH", include_str!("../data/products_fr_CH.json")),
+    ("fr_BE", include_str!("../data/products_fr_BE.json")),
+    ("de_AT", include_str!("../data/products_de_AT.json")),
+    ("tr_TR", include_str!("../data/products_tr_TR.json")),
 ];
 
 /// 内嵌的离线门店快照。所有地区都在这一个文件里。

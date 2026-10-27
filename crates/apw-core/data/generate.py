@@ -44,6 +44,17 @@ REGIONS = {
     "en_AU": ("https://www.apple.com/au", "en-US,en;q=0.9"),
     "en_MY": ("https://www.apple.com/my", "en-US,en;q=0.9"),
     "en_US": ("https://www.apple.com", "en-US,en;q=0.9"),
+    "en_GB": ("https://www.apple.com/uk", "en-GB,en;q=0.9"),
+    "fr_FR": ("https://www.apple.com/fr", "fr-FR,fr;q=0.9"),
+    "de_DE": ("https://www.apple.com/de", "de-DE,de;q=0.9"),
+    "it_IT": ("https://www.apple.com/it", "it-IT,it;q=0.9"),
+    "es_ES": ("https://www.apple.com/es", "es-ES,es;q=0.9"),
+    "nl_NL": ("https://www.apple.com/nl", "nl-NL,nl;q=0.9"),
+    "sv_SE": ("https://www.apple.com/se", "sv-SE,sv;q=0.9"),
+    "fr_CH": ("https://www.apple.com/ch-fr", "fr-CH,fr;q=0.9"),
+    "fr_BE": ("https://www.apple.com/be-fr", "fr-BE,fr;q=0.9"),
+    "de_AT": ("https://www.apple.com/at", "de-AT,de;q=0.9"),
+    "tr_TR": ("https://www.apple.com/tr", "tr-TR,tr;q=0.9"),
 }
 
 # 与 crates/apw-core/src/model.rs 的 DEFAULT_FAMILIES 保持一致。
@@ -72,6 +83,10 @@ FAMILIES = [
     ("watch", "apple-watch-hermes"),
     ("watch", "apple-watch-hermes-ultra"),
 ]
+
+# Some storefronts do not sell Hermès. Keep their catalog complete for available families.
+REGION_FAMILIES = {locale: [(category, slug) for category, slug in FAMILIES if "hermes" not in slug]
+                   for locale in ("nl_NL", "fr_BE", "de_AT", "tr_TR")}
 
 BUY_PATH = {"iphone": "buy-iphone", "ipad": "buy-ipad", "mac": "buy-mac", "watch": "buy-watch"}
 
@@ -486,7 +501,7 @@ def self_test() -> int:
     return 0
 
 
-def main(locales=None) -> int:
+def main(locales=None, base_configs_only=False) -> int:
     here = Path(__file__).resolve().parent
     failed = []
 
@@ -495,7 +510,7 @@ def main(locales=None) -> int:
             continue
         pages = []
         broken = False
-        for category, slug in FAMILIES:
+        for category, slug in REGION_FAMILIES.get(locale, FAMILIES):
             url = f"{base}/shop/{BUY_PATH[category]}/{slug}"
             data, page = None, b""
             for attempt in range(RETRIES):
@@ -533,7 +548,7 @@ def main(locales=None) -> int:
 
             if category == "mac":
                 configs = []
-                for link in config_links(page, slug):
+                for link in ([] if base_configs_only else config_links(page, slug)):
                     group, memory, storage = parse_config_slug(link)
                     time.sleep(DELAY_SECONDS)
                     try:
@@ -576,7 +591,9 @@ if __name__ == "__main__":
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--locale", action="append", choices=REGIONS,
                         help="只更新指定地区，可重复；缺省更新所有地区")
+    parser.add_argument("--base-configs-only", action="store_true",
+                        help="抓取各购买页的基础型号，不额外抓取 Mac 升级配置页")
     args = parser.parse_args()
     if args.self_test:
         raise SystemExit(self_test())
-    raise SystemExit(main(args.locale))
+    raise SystemExit(main(args.locale, args.base_configs_only))

@@ -233,7 +233,7 @@ fn 读出来的设置会被规范化() {
     fs::write(
         &path,
         r#"{
-          "locale": "de_DE",
+          "locale": "xx_XX",
           "intervalSeconds": 1,
           "targets": [
             {"locale":"zh_CN","storeNumber":"R683","storeTitle":"上海-环球港","partNumber":"MG724CH/A","productName":"x"},
@@ -244,7 +244,7 @@ fn 读出来的设置会被规范化() {
     .expect("写测试文件失败");
 
     let got = SettingsStore::at(path).load().expect("读取失败");
-    assert_ne!(got.locale, "de_DE");
+    assert_ne!(got.locale, "xx_XX");
     assert_eq!(got.interval_seconds, DEFAULT_INTERVAL_SECONDS);
     assert_eq!(got.targets.len(), 1);
 }
@@ -269,7 +269,7 @@ fn 保存不改动调用方持有的数据() {
     let store = SettingsStore::at(dir.设置路径());
 
     let mine = Settings {
-        locale: "de_DE".into(),
+        locale: "xx_XX".into(),
         interval_seconds: 1,
         targets: vec![
             目标("R683", "MG724CH/A"),
@@ -293,7 +293,7 @@ fn 保存不改动调用方持有的数据() {
     let 盘上 = store.load().expect("读取失败");
     assert_eq!(盘上.targets.len(), 2);
     assert_eq!(盘上.interval_seconds, DEFAULT_INTERVAL_SECONDS);
-    assert_ne!(盘上.locale, "de_DE");
+    assert_ne!(盘上.locale, "xx_XX");
 }
 
 #[test]
@@ -451,7 +451,7 @@ fn 迁移过来的非法字段会被规范化() {
     let dir = 临时目录::new("legacy-normalize");
     fs::write(
         dir.join("settings.json"),
-        br#"{"locale":"de_DE","interval_seconds":-1,
+        br#"{"locale":"xx_XX","interval_seconds":-1,
              "targets":[
                {"locale":"zh_CN","store_number":"R683","part_number":"MG724CH/A"},
                {"locale":"zh_CN","store_number":"R683","part_number":"MG724CH/A"}
@@ -465,7 +465,7 @@ fn 迁移过来的非法字段会被规范化() {
     // Go 版的 interval_seconds 是有符号 int，磁盘上出现负数完全可能。按 u64 硬接
     // 会让整份迁移因为一个字段失败，用户的监控列表就白白丢了。
     assert_eq!(got.interval_seconds, DEFAULT_INTERVAL_SECONDS);
-    assert_ne!(got.locale, "de_DE");
+    assert_ne!(got.locale, "xx_XX");
     assert_eq!(got.targets.len(), 1);
 }
 
@@ -708,4 +708,21 @@ fn lan_sharing_is_off_for_old_settings_and_preserves_a_generated_token_across_re
     settings.lan_access_token = "a".repeat(64);
     store.save(&settings).unwrap();
     assert_eq!(SettingsStore::at(dir.设置路径()).load().unwrap(), settings);
+}
+
+#[test]
+fn european_locale_survives_settings_load_and_save() {
+    let dir = 临时目录::new("europe");
+    let path = dir.设置路径();
+    fs::write(
+        &path,
+        r#"{"locale":"de_DE","intervalSeconds":180,"language":"en"}"#,
+    )
+    .unwrap();
+    let store = SettingsStore::at(path);
+    let settings = store.load().unwrap();
+    assert_eq!(settings.locale, "de_DE");
+    assert_eq!(settings.interval_seconds, 180);
+    store.save(&settings).unwrap();
+    assert_eq!(store.load().unwrap().locale, "de_DE");
 }

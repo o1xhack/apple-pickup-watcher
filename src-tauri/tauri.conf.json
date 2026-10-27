@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Apple 取货监控",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "identifier": "com.o1xhack.inventory-rush",
   "build": {
     "beforeDevCommand": "pnpm dev",

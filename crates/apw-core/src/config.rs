@@ -773,7 +773,7 @@ mod tests {
     #[test]
     fn 规范化修正非法地区() {
         let mut s = Settings {
-            locale: "de_DE".into(),
+            locale: "xx_XX".into(),
             ..Settings::default()
         };
         s.normalize();
@@ -852,7 +852,7 @@ mod tests {
     #[test]
     fn 规范化是幂等的() {
         let mut once = Settings {
-            locale: "de_DE".into(),
+            locale: "xx_XX".into(),
             interval_seconds: 1,
             targets: vec![目标("R683", "MG724CH/A"), 目标("R683", "MG724CH/A")],
             ..Settings::default()

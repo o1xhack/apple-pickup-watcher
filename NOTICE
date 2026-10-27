@@ -11,6 +11,8 @@ history and statistics, bilingual mobile web controls, per-target Bark critical
 alerts, optional global repeat alerts, browser-based queries with shared cooldown
 and recovery, and installed-app lifecycle fixes. Renamed the fork Apple Pickup Watcher.
 Notification-only: this fork does not automate checkout or place orders.
+2026-10-27: Added European storefronts with country-specific product snapshots
+and current Apple retail store data from https://www.apple.com/retail/storelist/.
 
 ================================================================================
 NOTICE — 来源、版权与修改声明

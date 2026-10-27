@@ -14,7 +14,7 @@ Open the desktop app's “网页 / Status” button or http://127.0.0.1:17842 fo
 
 Default alerts are deduplicated per continuous in-stock period. An optional global switch repeats alerts on every fresh positive observation. SQLite keeps history across restarts. Failed checks remain unknown, never out of stock. Apple may throttle or block requests; automatic cooldown is not a guarantee against blocking. This is a notification tool, not an automatic checkout or cart bot.
 
-This first fork release includes a locally validated Apple Silicon macOS build. Intel and other Tauri platforms require their own build validation. The official v0.6.3 download is Developer ID signed, notarized by Apple and stapled. macOS may still ask for the normal first-open download confirmation. Verify the SHA256 before opening. Self-built and routine CI artifacts are not automatically notarized.
+This first fork release includes a locally validated Apple Silicon macOS build. Intel and other Tauri platforms require their own build validation. The official macOS download is Developer ID signed, notarized by Apple and stapled. macOS may still ask for the normal first-open download confirmation. Verify the SHA256 before opening. Self-built and routine CI artifacts are not automatically notarized.
 
 Build with the Rust version specified in Cargo.toml, Node.js LTS, pnpm 9 and [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
 
@@ -24,3 +24,23 @@ pnpm tauri build
 ```
 
 Fork of [ENCHIGO/apple-pickup-watcher](https://github.com/ENCHIGO/apple-pickup-watcher), originally derived from [Hteen/apple-store-helper](https://github.com/hteen/apple-store-helper). GPL-3.0-or-later; upstream copyrights are preserved. See LICENSE and NOTICE for attribution, dated modifications, redistribution terms and the no-warranty notice. Source and build instructions accompany binary releases. Not affiliated with Apple.
+
+
+## European stores
+
+Europe is supported in the desktop app, its local web controls and CLI: United
+Kingdom, France, Germany, Italy, Spain, Netherlands, Sweden, Switzerland, Belgium,
+Austria and Türkiye. Select the country rather than a generic Europe region:
+store IDs, Apple storefront, language headers, postal codes and product part
+numbers belong to that country. Existing monitoring targets are preserved.
+The offline snapshots include standard configurations across all product families;
+use the catalog refresh for current and additional Mac upgrade configurations.
+
+Rebuild the new snapshots from Apple's public pages (no stock polling):
+
+```sh
+python3 crates/apw-core/data/generate.py --locale en_GB --base-configs-only
+```
+
+The public nationwide site is a separate US-only project. This change does not
+start European scanning there. Catalog availability never implies stock.

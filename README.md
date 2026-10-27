@@ -55,3 +55,10 @@ macOS 产物位于 `target/release/bundle/`；App 内已嵌入网页资源，不
 本项目基于 [ENCHIGO/apple-pickup-watcher](https://github.com/ENCHIGO/apple-pickup-watcher)，该项目继承自 [Hteen/apple-store-helper](https://github.com/hteen/apple-store-helper)。
 
 本分叉新增美国 ZIP/门店查询、SQLite 历史与统计、移动网页、中英文网页、逐目标重要提醒、全局重复提醒、浏览器查询及冷却恢复，并修复安装与关窗恢复问题。修改日期与版权详见 [NOTICE](NOTICE)。整体继续以 **GPL-3.0-or-later** 发布，保留上游版权与许可；分发二进制同时提供对应完整源码和构建方式。本项目与 Apple 无关联，不提供库存或抢购成功保证。
+
+
+## 欧洲门店
+
+桌面 App、本机网页和 CLI 支持英国、法国、德国、意大利、西班牙、荷兰、瑞典、瑞士、比利时、奥地利及土耳其。请按国家选择地区；各国分别使用真实门店、邮编、Apple 商店入口、语言请求头和商品零件号，不复用美国 SKU。已有监控配置保留。
+
+离线目录包含各产品系列的基础配置；最新型号及更多 Mac 升级配置可通过刷新目录取得。可用 `python3 crates/apw-core/data/generate.py --locale en_GB --base-configs-only` 重建基础快照。独立的全国库存网站仍只采集美国；本次不为网站新增欧洲扫描。目录存在不代表有货，失败依然显示 Unknown。

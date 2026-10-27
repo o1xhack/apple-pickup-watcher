@@ -49,7 +49,7 @@ const SELECTION: &str = r#"{
 #[test]
 fn 所有地区都能从内嵌数据读出商品与门店() {
     let catalog = Catalog::new();
-    assert_eq!(REGIONS.len(), 8);
+    assert_eq!(REGIONS.len(), 19);
 
     for region in REGIONS {
         let products = catalog
@@ -260,7 +260,7 @@ fn 找不到时返回空值而不是崩掉() {
 fn 未知地区一律返回错误而不是崩掉() {
     let catalog = Catalog::new();
 
-    for locale in ["de_DE", "", "zh_cn", "../data/products_zh_CN.json"] {
+    for locale in ["xx_XX", "", "zh_cn", "../data/products_zh_CN.json"] {
         match catalog.products(locale) {
             Err(CatalogError::UnknownLocale { .. }) => {}
             other => panic!("地区 {locale:?} 的商品目录应当报「没有这个地区」，实际是 {other:?}"),
@@ -909,4 +909,40 @@ fn 标准配置展开进目录且默认配置也标出内存与存储() {
             .iter()
             .all(|p| p.category == Category::Mac && p.family == "macbook-pro")
     );
+}
+
+#[test]
+fn european_regions_have_real_stores_and_region_specific_phone_parts() {
+    let catalog = Catalog::new();
+    for locale in [
+        "en_GB", "fr_FR", "de_DE", "it_IT", "es_ES", "nl_NL", "sv_SE", "fr_CH", "fr_BE", "de_AT",
+        "tr_TR",
+    ] {
+        let region = region_by_locale(locale).expect("European region missing");
+        assert_ne!(region.accept_language(), "en-US,en;q=0.9");
+        let stores = catalog.stores(locale).expect("European stores missing");
+        assert!(
+            stores.iter().any(|s| !s.postal_code.is_empty()),
+            "{locale} needs real postal codes"
+        );
+        let store = stores.iter().find(|s| !s.postal_code.is_empty()).unwrap();
+        assert_eq!(
+            store.pickup_location(locale).as_deref(),
+            Some(store.postal_code.as_str())
+        );
+        let products = catalog.products(locale).expect("European products missing");
+        assert!(
+            products
+                .iter()
+                .any(|p| p.category == Category::Iphone && p.family.starts_with("iphone18pro")),
+            "{locale} needs actual iPhone SKU data"
+        );
+        assert!(
+            products
+                .iter()
+                .filter(|p| p.category == Category::Iphone)
+                .all(|p| !p.part_number.ends_with("LL/A")),
+            "{locale} must not reuse US phone SKUs"
+        );
+    }
 }
